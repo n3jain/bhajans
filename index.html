@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bhajan Notebook</title>
+<style>
+:root{--paper:#fffaf0;--ink:#35271e;--muted:#7a6a5c;--accent:#a34b22;--line:#eadcc9}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:Georgia,"Noto Serif Devanagari",serif}
+main{max-width:900px;margin:auto;padding:40px 20px 70px}
+h1{text-align:center;font-size:48px;font-weight:500;margin:0 0 6px}
+.sub{text-align:center;color:var(--muted);font-style:italic;margin-bottom:28px}
+.search{display:flex;gap:8px;max-width:680px;margin:0 auto 20px}
+input,textarea,select{width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;background:#fff;font:inherit}
+.search input{font-size:17px}
+.btn{padding:11px 15px;border:0;border-radius:10px;background:var(--accent);color:#fff;cursor:pointer;font:inherit}
+.secondary{background:#fff;color:var(--ink);border:1px solid var(--line)}
+.chips{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:24px}
+.chip{background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:7px 11px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+.card,.panel,.lyrics{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px}
+.card{cursor:pointer}.meta{font-size:13px;color:var(--muted)}.hidden{display:none!important}
+.reader{max-width:720px;margin:auto}.lyrics{white-space:pre-wrap;line-height:2;font-size:20px;margin-top:18px}
+.toolbar{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.panel{max-width:720px;margin:20px auto}.field{margin:11px 0}.field label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
+textarea{min-height:150px}.owner{position:fixed;right:14px;bottom:12px;color:var(--muted);font-size:12px;cursor:pointer}
+.notice{background:#fff2d8;padding:9px;border-radius:9px;margin-top:10px}.links{text-align:center;margin:20px}.links a{margin:0 8px;color:var(--accent)}
+@media(max-width:600px){h1{font-size:38px}.search{flex-direction:column}}
+</style>
+</head>
+<body>
+<main>
+<h1>Bhajan Notebook</h1>
+<div class="sub">एक खुली भजन-पोथी · a virtual open notebook of bhajans</div>
+
+<section id="home">
+  <div class="search">
+    <input id="q" placeholder="Type a few words you remember…">
+    <button class="btn" id="go">Search</button>
+  </div>
+  <div id="chips" class="chips"></div>
+  <div id="list" class="grid"></div>
+  <p id="empty" class="meta" style="text-align:center">No published bhajans yet.</p>
+</section>
+
+<section id="reader" class="reader hidden">
+  <div class="toolbar">
+    <button class="btn secondary" id="back">← Notebook</button>
+    <button class="btn secondary" id="dev">देवनागरी</button>
+    <button class="btn secondary" id="eng">English</button>
+  </div>
+  <h2 id="rt" style="text-align:center"></h2>
+  <div id="rm" class="meta" style="text-align:center"></div>
+  <div id="ly" class="lyrics"></div>
+  <div id="ln" class="links"></div>
+</section>
+
+<section id="admin" class="hidden">
+  <div class="panel" id="login">
+    <h2>Notebook editor</h2>
+    <p class="meta">Only the notebook owner can add or edit bhajans.</p>
+    <div class="field"><label>Email</label><input id="email" type="email" value="neha.hbti.it@gmail.com"></div>
+    <div class="field"><label>Password</label><input id="pw" type="password"></div>
+    <button class="btn" id="signin">Sign in</button>
+    <button class="btn secondary" id="signup">Set up admin access</button>
+    <div id="authmsg" class="notice hidden"></div>
+  </div>
+
+  <div class="panel hidden" id="editor">
+    <div style="display:flex;justify-content:space-between;gap:10px">
+      <h2>Add bhajan</h2><button class="btn secondary" id="logout">Sign out</button>
+    </div>
+    <div class="field"><label>Title</label><input id="title"></div>
+    <div class="field"><label>Title in Devanagari</label><input id="titleDev"></div>
+    <div class="field"><label>Devanagari lyrics</label><textarea id="lyricsDev"></textarea></div>
+    <div class="field"><label>English transliteration</label><textarea id="lyricsEng"></textarea></div>
+    <div class="field"><label>Category</label><select id="cat"></select></div>
+    <div class="field"><label>Original author / poet</label><input id="author" placeholder="Meera Bai, Kabir, Traditional…"></div>
+    <div class="field"><label>Attribution note</label><input id="anote" placeholder="Attributed to…, traditional, author unknown…"></div>
+    <div class="field"><label>Source URL</label><input id="source"></div>
+    <div class="field"><label>YouTube URL</label><input id="youtube"></div>
+    <div class="field"><label>Spotify URL</label><input id="spotify"></div>
+    <div class="field"><label>Status</label><select id="status"><option value="draft">Draft</option><option value="published">Published</option></select></div>
+    <button class="btn" id="save">Save bhajan</button>
+    <div id="savemsg" class="notice hidden"></div>
+  </div>
+</section>
+</main>
+
+<div class="owner" id="owner">owner</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.75.0/dist/umd/supabase.min.js"></script>
+<script>
+const U="https://fssdfwgcrefwsihowofz.supabase.co";
+const K="sb_publishable_St_uGRfOiZ2Za-KWrfbfKA_mUzbkK5P";
+const client=supabase.createClient(U,K);
+let cats=[],items=[],cur=null;
+const $=x=>document.getElementById(x);
+const esc=s=>String(s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
+function show(x){["home","reader","admin"].forEach(i=>$(i).classList.toggle("hidden",i!==x))}
+async function load(){
+  const [{data:c},{data:b,error}]=await Promise.all([
+    client.from("categories").select("*").order("name"),
+    client.from("bhajans").select("*,categories(name,devanagari_name)").order("title")
+  ]);
+  cats=c||[];items=error?[]:(b||[]);
+  $("chips").innerHTML='<button class="chip" data-c="">All</button>'+cats.map(c=>'<button class="chip" data-c="'+c.id+'">'+esc((c.devanagari_name||"")+" "+c.name)+'</button>').join("");
+  $("cat").innerHTML=cats.map(c=>'<option value="'+c.id+'">'+esc(c.name)+'</option>').join("");
+  document.querySelectorAll(".chip").forEach(b=>b.onclick=()=>render(b.dataset.c));
+  render();
+}
+function render(cat=""){
+  const q=$("q").value.toLowerCase();
+  const r=items.filter(b=>(!cat||String(b.category_id)===String(cat))&&(!q||[b.title,b.title_devanagari,b.lyrics_devanagari,b.lyrics_transliteration,b.author_name].filter(Boolean).join(" ").toLowerCase().includes(q)));
+  $("list").innerHTML=r.map(b=>'<div class="card" data-id="'+b.id+'"><h3>'+esc(b.title_devanagari||b.title)+'</h3><div>'+esc(b.title_devanagari?b.title:"")+'</div><div class="meta">'+esc((b.categories?.name||"")+(b.author_name?" · "+b.author_name:""))+'</div></div>').join("");
+  $("empty").classList.toggle("hidden",r.length>0);
+  document.querySelectorAll("#list .card").forEach(c=>c.onclick=()=>openB(c.dataset.id));
+}
+function openB(id){
+  cur=items.find(b=>b.id===id);if(!cur)return;show("reader");
+  $("rt").textContent=cur.title_devanagari||cur.title;
+  $("rm").textContent=[cur.title_devanagari?cur.title:null,cur.author_name,cur.author_note].filter(Boolean).join(" · ");
+  $("ly").textContent=cur.lyrics_devanagari;
+  $("ln").innerHTML=(cur.youtube_url?'<a target="_blank" href="'+cur.youtube_url+'">YouTube</a>':"")+(cur.spotify_url?'<a target="_blank" href="'+cur.spotify_url+'">Spotify</a>':"")+(cur.source_url?'<a target="_blank" href="'+cur.source_url+'">Source</a>':"");
+}
+async function authUI(){
+  const {data:{session}}=await client.auth.getSession();
+  $("login").classList.toggle("hidden",!!session);
+  $("editor").classList.toggle("hidden",!session);
+}
+$("go").onclick=()=>render();
+$("q").oninput=()=>render();
+$("back").onclick=()=>show("home");
+$("dev").onclick=()=>{$("ly").textContent=cur.lyrics_devanagari};
+$("eng").onclick=()=>{$("ly").textContent=cur.lyrics_transliteration||"English transliteration not added yet."};
+$("owner").onclick=()=>{show("admin");authUI()};
+$("signin").onclick=async()=>{
+  const {error}=await client.auth.signInWithPassword({email:$("email").value,password:$("pw").value});
+  $("authmsg").textContent=error?error.message:"Signed in.";
+  $("authmsg").classList.remove("hidden");
+  if(!error){await authUI();await load()}
+};
+$("signup").onclick=async()=>{
+  const {error}=await client.auth.signUp({email:$("email").value,password:$("pw").value});
+  $("authmsg").textContent=error?error.message:"Admin account created. Check your email if confirmation is required.";
+  $("authmsg").classList.remove("hidden");
+};
+$("logout").onclick=async()=>{await client.auth.signOut();authUI()};
+$("save").onclick=async()=>{
+  const row={
+    title:$("title").value.trim(),
+    title_devanagari:$("titleDev").value.trim()||null,
+    lyrics_devanagari:$("lyricsDev").value.trim(),
+    lyrics_transliteration:$("lyricsEng").value.trim()||null,
+    category_id:Number($("cat").value),
+    author_name:$("author").value.trim()||null,
+    author_note:$("anote").value.trim()||null,
+    source_url:$("source").value.trim()||null,
+    youtube_url:$("youtube").value.trim()||null,
+    spotify_url:$("spotify").value.trim()||null,
+    status:$("status").value
+  };
+  if(!row.title||!row.lyrics_devanagari){
+    $("savemsg").textContent="Title and Devanagari lyrics are required.";
+    $("savemsg").classList.remove("hidden");return;
+  }
+  const {error}=await client.from("bhajans").insert(row);
+  $("savemsg").textContent=error?error.message:"Saved to your notebook.";
+  $("savemsg").classList.remove("hidden");
+  if(!error){["title","titleDev","lyricsDev","lyricsEng","author","anote","source","youtube","spotify"].forEach(id=>$(id).value="");await load()}
+};
+load();authUI();
+</script>
+</body></html>
