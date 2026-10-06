@@ -63,7 +63,7 @@ textarea{min-height:150px}.notice{background:#fff2d8;padding:11px 12px;border-ra
   <div class="toolbar">
     <button class="btn secondary" id="back">← Notebook</button>
     <button class="btn secondary" id="dev">देवनागरी</button>
-    <button class="btn secondary" id="eng">English</button>\n    <button class="btn secondary hidden" id="editBhajan">Edit bhajan</button>
+    <button class="btn secondary" id="eng">English</button>\n    <button class="btn secondary" id="copyLink">Copy link</button>\n    <button class="btn secondary hidden" id="editBhajan">Edit bhajan</button>
   </div>
   <h2 id="rt" style="text-align:center"></h2>
   <div id="rm" class="meta" style="text-align:center"></div>
@@ -163,9 +163,11 @@ function devanagarize(roman){
   try{return Sanscript.t(roman,"itrans","devanagari",{syncope:true})}catch{return ""}
 }
 function setBhajanUrl(id){
-  const u=new URL(location.href);
-  if(id)u.searchParams.set("bhajan",id); else u.searchParams.delete("bhajan");
-  history.pushState({}, "", u);
+  location.hash=id?"/bhajan/"+encodeURIComponent(id):"";
+}
+function idFromHash(){
+  const m=location.hash.match(/^#\/bhajan\/([^/?#]+)/);
+  return m?decodeURIComponent(m[1]):null;
 }
 function clearReview(){
   ["title","titleDev","lyricsDev","lyricsEng","author","anote","sourceName","source","youtube","spotify"].forEach(id=>$(id).value="");
@@ -187,7 +189,7 @@ async function load(){
   $("cat").innerHTML=cats.map(c=>'<option value="'+c.id+'">'+esc(c.name)+'</option>').join("");
   document.querySelectorAll(".chip").forEach(b=>b.onclick=()=>render(b.dataset.c));
   render();
-  const direct=new URL(location.href).searchParams.get("bhajan");
+  const direct=idFromHash();
   if(direct && items.some(x=>x.id===direct)) openB(direct,false);
 }
 function render(cat=""){
@@ -222,6 +224,23 @@ async function authUI(){
   const {data:{session}}=await client.auth.getSession();
   $("login").classList.toggle("hidden",!!session);
   $("editor").classList.toggle("hidden",!session);
+  $("editBhajan").classList.toggle("hidden",!session);
+}
+function fillEditor(b){
+  editingId=b.id;
+  $("review").classList.remove("hidden");
+  $("title").value=b.title||"";
+  $("titleDev").value=b.title_devanagari||"";
+  $("lyricsDev").value=b.lyrics_devanagari||"";
+  $("lyricsEng").value=b.lyrics_transliteration||"";
+  $("author").value=b.author_name||"";
+  $("anote").value=b.author_note||"";
+  $("sourceName").value=b.source_name||"";
+  $("source").value=b.source_url||"";
+  $("youtube").value=b.youtube_url||"";
+  $("spotify").value=b.spotify_url||"";
+  $("status").value=b.status||"published";
+  if(b.category_id)$("cat").value=String(b.category_id);
 }
 async function ownerOpen(){show("admin");await authUI()}
 async function findBhajan(){
@@ -286,11 +305,17 @@ $("dev").onclick=()=>{
   $("ly").textContent=cur.lyrics_devanagari||"";
 };
 $("eng").onclick=()=>{
-  if(!cur.lyrics_transliteration && cur.lyrics_devanagari)cur.lyrics_transliteration=romanize(cur.lyrics_devanagari);
-  $("ly").textContent=cur.lyrics_transliteration||"";
+  $("ly").textContent=cur?.lyrics_transliteration||"English transliteration has not been generated for this entry yet.";
 };
-window.addEventListener("popstate",()=>{
-  const id=new URL(location.href).searchParams.get("bhajan");
+$("copyLink").onclick=async()=>{
+  if(!cur)return;
+  const url=location.origin+location.pathname+"#/bhajan/"+encodeURIComponent(cur.id);
+  await navigator.clipboard.writeText(url);
+  $("copyLink").textContent="Copied";
+  setTimeout(()=>$("copyLink").textContent="Copy link",1200);
+};
+window.addEventListener("hashchange",()=>{
+  const id=idFromHash();
   if(id)openB(id,false); else show("home");
 });
 $("ownerTop").onclick=ownerOpen;
@@ -341,12 +366,21 @@ $("save").onclick=async()=>{
     $("savemsg").textContent="Please confirm a title and lyrics in either Devanagari or Roman script.";
     $("savemsg").classList.remove("hidden");return;
   }
-  const {data,error}=await client.from("bhajans").insert(row).select("id").single();
-  $("savemsg").textContent=error?error.message:"Saved to your notebook.";
+  let data,error;
+  if(editingId){
+    const res=await client.from("bhajans").update(row).eq("id",editingId).select("id").single();
+    data=res.data; error=res.error;
+  }else{
+    const res=await client.from("bhajans").insert(row).select("id").single();
+    data=res.data; error=res.error;
+  }
+  $("savemsg").textContent=error?error.message:(editingId?"Updated bhajan.":"Saved to your notebook.");
   $("savemsg").classList.remove("hidden");
   if(!error){
+    const id=data?.id||editingId;
+    editingId=null;
     await load();
-    if(data?.id)openB(data.id);
+    if(id)openB(id);
   }
 };
 load();authUI();
