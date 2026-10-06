@@ -141,7 +141,7 @@ textarea{min-height:150px}.notice{background:#fff2d8;padding:11px 12px;border-ra
 </section>
 </main>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.75.0/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.75.0/dist/umd/supabase.min.js"></script>\n<script src="https://cdn.jsdelivr.net/npm/@indic-transliteration/sanscript@1.3.3/sanscript.js"></script>
 <script>
 const U="https://fssdfwgcrefwsihowofz.supabase.co";
 const K="sb_publishable_St_uGRfOiZ2Za-KWrfbfKA_mUzbkK5P";
@@ -150,6 +150,23 @@ let cats=[],items=[],cur=null;
 const $=x=>document.getElementById(x);
 const esc=s=>String(s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
 function show(x){["home","reader","admin"].forEach(i=>$(i).classList.toggle("hidden",i!==x))}
+function romanize(dev){
+  if(!dev)return "";
+  try{
+    return Sanscript.t(dev,"devanagari","iast",{syncope:true})
+      .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+      .replace(/ṃ/g,"m").replace(/ḥ/g,"h");
+  }catch{return ""}
+}
+function devanagarize(roman){
+  if(!roman)return "";
+  try{return Sanscript.t(roman,"itrans","devanagari",{syncope:true})}catch{return ""}
+}
+function setBhajanUrl(id){
+  const u=new URL(location.href);
+  if(id)u.searchParams.set("bhajan",id); else u.searchParams.delete("bhajan");
+  history.pushState({}, "", u);
+}
 function clearReview(){
   ["title","titleDev","lyricsDev","lyricsEng","author","anote","sourceName","source","youtube","spotify"].forEach(id=>$(id).value="");
   $("status").value="published";
@@ -170,6 +187,8 @@ async function load(){
   $("cat").innerHTML=cats.map(c=>'<option value="'+c.id+'">'+esc(c.name)+'</option>').join("");
   document.querySelectorAll(".chip").forEach(b=>b.onclick=()=>render(b.dataset.c));
   render();
+  const direct=new URL(location.href).searchParams.get("bhajan");
+  if(direct && items.some(x=>x.id===direct)) openB(direct,false);
 }
 function render(cat=""){
   const raw=$("q").value.trim();
@@ -188,12 +207,16 @@ function render(cat=""){
   }else $("empty").classList.add("hidden");
   document.querySelectorAll("#list .card").forEach(c=>c.onclick=()=>openB(c.dataset.id));
 }
-function openB(id){
-  cur=items.find(b=>b.id===id);if(!cur)return;show("reader");
+function openB(id,push=true){
+  cur=items.find(b=>b.id===id);if(!cur)return;
+  if(!cur.lyrics_transliteration && cur.lyrics_devanagari) cur.lyrics_transliteration=romanize(cur.lyrics_devanagari);
+  if(!cur.lyrics_devanagari && cur.lyrics_transliteration) cur.lyrics_devanagari=devanagarize(cur.lyrics_transliteration);
+  show("reader");
   $("rt").textContent=cur.title_devanagari||cur.title;
-  $("rm").textContent=[cur.title_devanagari?cur.title:null,cur.author_name,cur.author_note].filter(Boolean).join(" · ");
-  $("ly").textContent=cur.lyrics_devanagari;
+  $("rm").textContent=[cur.title_devanagari&&cur.title!==cur.title_devanagari?cur.title:null,cur.author_name,cur.author_note].filter(Boolean).join(" · ");
+  $("ly").textContent=cur.lyrics_devanagari||"";
   $("ln").innerHTML=(cur.youtube_url?'<a target="_blank" rel="noopener" href="'+cur.youtube_url+'">YouTube</a>':"")+(cur.spotify_url?'<a target="_blank" rel="noopener" href="'+cur.spotify_url+'">Spotify</a>':"")+(cur.source_url?'<a target="_blank" rel="noopener" href="'+cur.source_url+'">Source</a>':"");
+  if(push)setBhajanUrl(id);
 }
 async function authUI(){
   const {data:{session}}=await client.auth.getSession();
@@ -257,9 +280,19 @@ async function findBhajan(){
 $("go").onclick=()=>render();
 $("q").oninput=()=>render();
 $("q").addEventListener("keydown",e=>{if(e.key==="Enter")render()});
-$("back").onclick=()=>show("home");
-$("dev").onclick=()=>{$("ly").textContent=cur.lyrics_devanagari};
-$("eng").onclick=()=>{$("ly").textContent=cur.lyrics_transliteration||"English transliteration not added yet."};
+$("back").onclick=()=>{show("home");setBhajanUrl(null)};
+$("dev").onclick=()=>{
+  if(!cur.lyrics_devanagari && cur.lyrics_transliteration)cur.lyrics_devanagari=devanagarize(cur.lyrics_transliteration);
+  $("ly").textContent=cur.lyrics_devanagari||"";
+};
+$("eng").onclick=()=>{
+  if(!cur.lyrics_transliteration && cur.lyrics_devanagari)cur.lyrics_transliteration=romanize(cur.lyrics_devanagari);
+  $("ly").textContent=cur.lyrics_transliteration||"";
+};
+window.addEventListener("popstate",()=>{
+  const id=new URL(location.href).searchParams.get("bhajan");
+  if(id)openB(id,false); else show("home");
+});
 $("ownerTop").onclick=ownerOpen;
 $("cancelLogin").onclick=()=>show("home");
 $("backOwner").onclick=()=>show("home");
@@ -274,11 +307,27 @@ $("findBhajan").onclick=findBhajan;
 $("ownerQ").addEventListener("keydown",e=>{if(e.key==="Enter")findBhajan()});
 $("startBlank").onclick=()=>{clearReview();$("review").classList.remove("hidden");setCategory("other");$("findmsg").textContent="Blank review card opened.";$("findmsg").classList.remove("hidden")};
 $("save").onclick=async()=>{
+  let title=$("title").value.trim();
+  let titleDev=$("titleDev").value.trim();
+  let dev=$("lyricsDev").value.trim();
+  let eng=$("lyricsEng").value.trim();
+
+  if(!dev && eng)dev=devanagarize(eng);
+  if(!eng && dev)eng=romanize(dev);
+  if(!titleDev && title && /[\u0900-\u097F]/.test(title))titleDev=title;
+  if(!titleDev && title)titleDev=devanagarize(title);
+  if(!title && titleDev)title=romanize(titleDev)||titleDev;
+
+  $("lyricsDev").value=dev;
+  $("lyricsEng").value=eng;
+  $("titleDev").value=titleDev;
+  $("title").value=title;
+
   const row={
-    title:$("title").value.trim(),
-    title_devanagari:$("titleDev").value.trim()||null,
-    lyrics_devanagari:$("lyricsDev").value.trim(),
-    lyrics_transliteration:$("lyricsEng").value.trim()||null,
+    title,
+    title_devanagari:titleDev||null,
+    lyrics_devanagari:dev||null,
+    lyrics_transliteration:eng||null,
     category_id:Number($("cat").value),
     author_name:$("author").value.trim()||null,
     author_note:$("anote").value.trim()||null,
@@ -288,14 +337,17 @@ $("save").onclick=async()=>{
     spotify_url:$("spotify").value.trim()||null,
     status:$("status").value
   };
-  if(!row.title||!row.lyrics_devanagari){
-    $("savemsg").textContent="Please confirm a title and Devanagari lyrics before saving.";
+  if(!row.title||(!row.lyrics_devanagari&&!row.lyrics_transliteration)){
+    $("savemsg").textContent="Please confirm a title and lyrics in either Devanagari or Roman script.";
     $("savemsg").classList.remove("hidden");return;
   }
-  const {error}=await client.from("bhajans").insert(row);
+  const {data,error}=await client.from("bhajans").insert(row).select("id").single();
   $("savemsg").textContent=error?error.message:"Saved to your notebook.";
   $("savemsg").classList.remove("hidden");
-  if(!error){await load()}
+  if(!error){
+    await load();
+    if(data?.id)openB(data.id);
+  }
 };
 load();authUI();
 </script>
