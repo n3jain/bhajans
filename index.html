@@ -99,7 +99,7 @@ textarea{min-height:150px}.notice{background:#fff2d8;padding:11px 12px;border-ra
       <button class="btn secondary" id="startBlank">Start from scratch</button>
       <button class="btn secondary" id="backOwner">Back to notebook</button>
     </div>
-    <div id="findmsg" class="notice hidden"></div>
+    <div id="findmsg" class="notice hidden"></div><div id="candidates" class="panel hidden" style="margin-top:16px"></div>
 
     <div id="review" class="hidden" style="margin-top:24px">
       <div class="review-head">
@@ -212,6 +212,19 @@ async function findBhajan(){
     const {data,error}=await client.functions.invoke("bhajan-search",{body:{q}});
     if(error)throw error;
     clearReview();
+    $("candidates").classList.add("hidden");
+    if(data.confidence==="low" && !data.lyrics_devanagari){
+      $("review").classList.add("hidden");
+      const cand=data.source_candidates||[];
+      if(cand.length){
+        $("candidates").innerHTML='<h3 style="margin-top:0">Possible matches</h3><div class="meta" style="margin-bottom:10px">I could not confidently identify the bhajan. Open a likely match, then search again with a more distinctive line if needed.</div>'+cand.map(s=>'<div style="margin:10px 0"><a target="_blank" rel="noopener" href="'+esc(s.url)+'">'+esc(s.name)+'</a></div>').join("");
+        $("candidates").classList.remove("hidden");
+        $("findmsg").textContent="I found a few possible matches, but not enough evidence to populate lyrics safely.";
+      }else{
+        $("findmsg").textContent="I could not confidently identify this bhajan. Try a longer or more distinctive line.";
+      }
+      return;
+    }
     $("review").classList.remove("hidden");
     $("title").value=data.title||q;
     $("titleDev").value=data.title_devanagari||"";
