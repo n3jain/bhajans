@@ -5,36 +5,46 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Bhajan Notebook</title>
 <style>
-:root{--paper:#fffaf0;--ink:#35271e;--muted:#7a6a5c;--accent:#a34b22;--line:#eadcc9}
+:root{--paper:#fffaf0;--ink:#35271e;--muted:#7a6a5c;--accent:#a34b22;--line:#eadcc9;--soft:#fff5e8}
 *{box-sizing:border-box}
 body{margin:0;background:var(--paper);color:var(--ink);font-family:Georgia,"Noto Serif Devanagari",serif}
-main{max-width:900px;margin:auto;padding:40px 20px 70px}
+main{max-width:920px;margin:auto;padding:38px 20px 72px}
 h1{text-align:center;font-size:48px;font-weight:500;margin:0 0 6px}
-.sub{text-align:center;color:var(--muted);font-style:italic;margin-bottom:28px}
+.sub{text-align:center;color:var(--muted);font-style:italic;margin-bottom:16px}
+.top-actions{text-align:center;margin-bottom:24px}
 .search{display:flex;gap:8px;max-width:680px;margin:0 auto 20px}
-input,textarea,select{width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;background:#fff;font:inherit}
+input,textarea,select{width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;background:#fff;font:inherit;color:var(--ink)}
 .search input{font-size:17px}
 .btn{padding:11px 15px;border:0;border-radius:10px;background:var(--accent);color:#fff;cursor:pointer;font:inherit}
+.btn:disabled{opacity:.55;cursor:default}
 .secondary{background:#fff;color:var(--ink);border:1px solid var(--line)}
 .chips{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:24px}
-.chip{background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:7px 11px}
+.chip{background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:7px 11px;cursor:pointer}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
 .card,.panel,.lyrics{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px}
 .card{cursor:pointer}.meta{font-size:13px;color:var(--muted)}.hidden{display:none!important}
 .reader{max-width:720px;margin:auto}.lyrics{white-space:pre-wrap;line-height:2;font-size:20px;margin-top:18px}
 .toolbar{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
-.panel{max-width:720px;margin:20px auto}.field{margin:11px 0}.field label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
-textarea{min-height:150px}.owner{position:fixed;right:14px;bottom:12px;color:var(--muted);font-size:12px;cursor:pointer}
-.notice{background:#fff2d8;padding:9px;border-radius:9px;margin-top:10px}.links{text-align:center;margin:20px}.links a{margin:0 8px;color:var(--accent)}
+.panel{max-width:760px;margin:20px auto}.field{margin:11px 0}.field label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
+textarea{min-height:150px}.notice{background:#fff2d8;padding:11px 12px;border-radius:10px;margin-top:10px}
+.links{text-align:center;margin:20px}.links a{margin:0 8px;color:var(--accent)}
 .empty-state{max-width:680px;margin:28px auto;text-align:center;background:#fff;border:1px dashed var(--line);border-radius:14px;padding:22px}
 .empty-state strong{display:block;font-size:18px;margin-bottom:5px}
-@media(max-width:600px){h1{font-size:38px}.search{flex-direction:column}}
+.owner-search{display:flex;gap:8px}.owner-search input{font-size:18px}
+.review-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:8px}
+.review-head h3{margin:0}
+.source-box{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:12px;margin:14px 0}
+.source-box a{color:var(--accent);word-break:break-all}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.small-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+@media(max-width:650px){h1{font-size:38px}.search,.owner-search{flex-direction:column}.row{grid-template-columns:1fr}.review-head{flex-direction:column}}
 </style>
 </head>
 <body>
 <main>
 <h1>Bhajan Notebook</h1>
 <div class="sub">एक खुली भजन-पोथी · a virtual open notebook of bhajans</div>
+<div class="top-actions"><button class="btn secondary" id="ownerTop">Owner login</button></div>
 
 <section id="home">
   <div class="search">
@@ -63,37 +73,73 @@ textarea{min-height:150px}.owner{position:fixed;right:14px;bottom:12px;color:var
 
 <section id="admin" class="hidden">
   <div class="panel" id="login">
-    <h2>Notebook editor</h2>
-    <p class="meta">Only the notebook owner can add or edit bhajans.</p>
+    <h2>Owner login</h2>
+    <p class="meta">Sign in to search the web, review a bhajan, and save it to the notebook.</p>
     <div class="field"><label>Email</label><input id="email" type="email" value="neha.hbti.it@gmail.com"></div>
     <div class="field"><label>Password</label><input id="pw" type="password"></div>
     <button class="btn" id="signin">Sign in</button>
-    <button class="btn secondary" id="signup">Set up admin access</button>
+    <button class="btn secondary" id="cancelLogin">Back to notebook</button>
     <div id="authmsg" class="notice hidden"></div>
   </div>
 
   <div class="panel hidden" id="editor">
-    <div style="display:flex;justify-content:space-between;gap:10px">
-      <h2>Add bhajan</h2><button class="btn secondary" id="logout">Sign out</button>
+    <div class="review-head">
+      <div>
+        <h2 style="margin:0 0 5px">Add a bhajan</h2>
+        <div class="meta">Type a few words. I’ll find a likely match and fill the review card for you.</div>
+      </div>
+      <button class="btn secondary" id="logout">Sign out</button>
     </div>
-    <div class="field"><label>Title</label><input id="title"></div>
-    <div class="field"><label>Title in Devanagari</label><input id="titleDev"></div>
-    <div class="field"><label>Devanagari lyrics</label><textarea id="lyricsDev"></textarea></div>
-    <div class="field"><label>English transliteration</label><textarea id="lyricsEng"></textarea></div>
-    <div class="field"><label>Category</label><select id="cat"></select></div>
-    <div class="field"><label>Original author / poet</label><input id="author" placeholder="Meera Bai, Kabir, Traditional…"></div>
-    <div class="field"><label>Attribution note</label><input id="anote" placeholder="Attributed to…, traditional, author unknown…"></div>
-    <div class="field"><label>Source URL</label><input id="source"></div>
-    <div class="field"><label>YouTube URL</label><input id="youtube"></div>
-    <div class="field"><label>Spotify URL</label><input id="spotify"></div>
-    <div class="field"><label>Status</label><select id="status"><option value="draft">Draft</option><option value="published">Published</option></select></div>
-    <button class="btn" id="save">Save bhajan</button>
-    <div id="savemsg" class="notice hidden"></div>
+
+    <div class="owner-search" style="margin-top:20px">
+      <input id="ownerQ" placeholder="e.g. achyutam keshavam">
+      <button class="btn" id="findBhajan">Find bhajan</button>
+    </div>
+    <div class="small-actions">
+      <button class="btn secondary" id="startBlank">Start from scratch</button>
+      <button class="btn secondary" id="backOwner">Back to notebook</button>
+    </div>
+    <div id="findmsg" class="notice hidden"></div>
+
+    <div id="review" class="hidden" style="margin-top:24px">
+      <div class="review-head">
+        <div>
+          <h3>Review before saving</h3>
+          <div class="meta">Everything below is editable. Nothing is published until you press Save.</div>
+        </div>
+      </div>
+
+      <div id="sourceBox" class="source-box hidden"></div>
+
+      <div class="row">
+        <div class="field"><label>Title</label><input id="title"></div>
+        <div class="field"><label>Title in Devanagari</label><input id="titleDev"></div>
+      </div>
+      <div class="field"><label>Devanagari lyrics</label><textarea id="lyricsDev"></textarea></div>
+      <div class="field"><label>English transliteration</label><textarea id="lyricsEng"></textarea></div>
+
+      <div class="row">
+        <div class="field"><label>Category</label><select id="cat"></select></div>
+        <div class="field"><label>Original author / poet</label><input id="author" placeholder="Traditional / author unknown"></div>
+      </div>
+      <div class="field"><label>Attribution notes</label><input id="anote"></div>
+
+      <div class="row">
+        <div class="field"><label>Source name</label><input id="sourceName"></div>
+        <div class="field"><label>Source URL</label><input id="source"></div>
+      </div>
+      <div class="row">
+        <div class="field"><label>YouTube URL</label><input id="youtube"></div>
+        <div class="field"><label>Spotify URL</label><input id="spotify"></div>
+      </div>
+      <div class="field"><label>Save as</label><select id="status"><option value="published">Published</option><option value="draft">Draft</option></select></div>
+
+      <button class="btn" id="save">Save to notebook</button>
+      <div id="savemsg" class="notice hidden"></div>
+    </div>
   </div>
 </section>
 </main>
-
-<div class="owner" id="owner">owner</div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.75.0/dist/umd/supabase.min.js"></script>
 <script>
@@ -104,6 +150,16 @@ let cats=[],items=[],cur=null;
 const $=x=>document.getElementById(x);
 const esc=s=>String(s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
 function show(x){["home","reader","admin"].forEach(i=>$(i).classList.toggle("hidden",i!==x))}
+function clearReview(){
+  ["title","titleDev","lyricsDev","lyricsEng","author","anote","sourceName","source","youtube","spotify"].forEach(id=>$(id).value="");
+  $("status").value="published";
+  $("sourceBox").classList.add("hidden");
+  $("savemsg").classList.add("hidden");
+}
+function setCategory(slug){
+  const c=cats.find(x=>x.slug===slug);
+  if(c)$("cat").value=String(c.id);
+}
 async function load(){
   const [{data:c},{data:b,error}]=await Promise.all([
     client.from("categories").select("*").order("name"),
@@ -123,15 +179,13 @@ function render(cat=""){
   if(r.length===0){
     $("empty").classList.remove("hidden");
     if(raw){
-      $("empty").innerHTML='<strong>“'+esc(raw)+'” is not in the notebook yet.</strong><span class="meta">Try another line, or the owner can add this bhajan to the catalog.</span>';
-    } else if(items.length===0){
+      $("empty").innerHTML='<strong>“'+esc(raw)+'” is not in the notebook yet.</strong><span class="meta">Try another line. The owner can search the web and add it.</span>';
+    }else if(items.length===0){
       $("empty").innerHTML='<strong>No published bhajans yet.</strong><span class="meta">The notebook is waiting for its first bhajan.</span>';
-    } else {
+    }else{
       $("empty").innerHTML='<strong>No bhajans in this view.</strong><span class="meta">Try another category or search.</span>';
     }
-  } else {
-    $("empty").classList.add("hidden");
-  }
+  }else $("empty").classList.add("hidden");
   document.querySelectorAll("#list .card").forEach(c=>c.onclick=()=>openB(c.dataset.id));
 }
 function openB(id){
@@ -139,12 +193,53 @@ function openB(id){
   $("rt").textContent=cur.title_devanagari||cur.title;
   $("rm").textContent=[cur.title_devanagari?cur.title:null,cur.author_name,cur.author_note].filter(Boolean).join(" · ");
   $("ly").textContent=cur.lyrics_devanagari;
-  $("ln").innerHTML=(cur.youtube_url?'<a target="_blank" href="'+cur.youtube_url+'">YouTube</a>':"")+(cur.spotify_url?'<a target="_blank" href="'+cur.spotify_url+'">Spotify</a>':"")+(cur.source_url?'<a target="_blank" href="'+cur.source_url+'">Source</a>':"");
+  $("ln").innerHTML=(cur.youtube_url?'<a target="_blank" rel="noopener" href="'+cur.youtube_url+'">YouTube</a>':"")+(cur.spotify_url?'<a target="_blank" rel="noopener" href="'+cur.spotify_url+'">Spotify</a>':"")+(cur.source_url?'<a target="_blank" rel="noopener" href="'+cur.source_url+'">Source</a>':"");
 }
 async function authUI(){
   const {data:{session}}=await client.auth.getSession();
   $("login").classList.toggle("hidden",!!session);
   $("editor").classList.toggle("hidden",!session);
+}
+async function ownerOpen(){show("admin");await authUI()}
+async function findBhajan(){
+  const q=$("ownerQ").value.trim();
+  if(q.length<3){$("findmsg").textContent="Type at least a few characters.";$("findmsg").classList.remove("hidden");return}
+  $("findBhajan").disabled=true;
+  $("findBhajan").textContent="Searching…";
+  $("findmsg").textContent="Searching trusted public sources and listening links…";
+  $("findmsg").classList.remove("hidden");
+  try{
+    const {data,error}=await client.functions.invoke("bhajan-search",{body:{q}});
+    if(error)throw error;
+    clearReview();
+    $("review").classList.remove("hidden");
+    $("title").value=data.title||q;
+    $("titleDev").value=data.title_devanagari||"";
+    $("lyricsDev").value=data.lyrics_devanagari||"";
+    $("lyricsEng").value=data.lyrics_transliteration||"";
+    $("author").value=data.author_name||"";
+    $("anote").value=data.author_note||"";
+    $("sourceName").value=data.source_name||"";
+    $("source").value=data.source_url||"";
+    $("youtube").value=data.youtube_url||"";
+    $("spotify").value=data.spotify_url||"";
+    setCategory(data.category_slug||"other");
+    const links=(data.source_candidates||[]).map(s=>'<a target="_blank" rel="noopener" href="'+esc(s.url)+'">'+esc(s.name)+'</a>').join(" · ");
+    if(links){
+      $("sourceBox").innerHTML='<strong>Sources found</strong><div class="meta" style="margin-top:5px">'+links+'</div>';
+      $("sourceBox").classList.remove("hidden");
+    }
+    if(data.lyrics_devanagari){
+      $("findmsg").textContent="Found a likely match. Please review the lyrics and attribution before saving.";
+    }else{
+      $("findmsg").textContent="I found source/listening candidates, but not reusable lyrics I could safely import. You can paste or edit the lyrics before saving.";
+    }
+  }catch(e){
+    $("findmsg").textContent="Search failed: "+(e.message||String(e));
+  }finally{
+    $("findBhajan").disabled=false;
+    $("findBhajan").textContent="Find bhajan";
+  }
 }
 $("go").onclick=()=>render();
 $("q").oninput=()=>render();
@@ -152,19 +247,19 @@ $("q").addEventListener("keydown",e=>{if(e.key==="Enter")render()});
 $("back").onclick=()=>show("home");
 $("dev").onclick=()=>{$("ly").textContent=cur.lyrics_devanagari};
 $("eng").onclick=()=>{$("ly").textContent=cur.lyrics_transliteration||"English transliteration not added yet."};
-$("owner").onclick=()=>{show("admin");authUI()};
+$("ownerTop").onclick=ownerOpen;
+$("cancelLogin").onclick=()=>show("home");
+$("backOwner").onclick=()=>show("home");
 $("signin").onclick=async()=>{
   const {error}=await client.auth.signInWithPassword({email:$("email").value,password:$("pw").value});
   $("authmsg").textContent=error?error.message:"Signed in.";
   $("authmsg").classList.remove("hidden");
   if(!error){await authUI();await load()}
 };
-$("signup").onclick=async()=>{
-  const {error}=await client.auth.signUp({email:$("email").value,password:$("pw").value});
-  $("authmsg").textContent=error?error.message:"Admin account created. Check your email if confirmation is required.";
-  $("authmsg").classList.remove("hidden");
-};
-$("logout").onclick=async()=>{await client.auth.signOut();authUI()};
+$("logout").onclick=async()=>{await client.auth.signOut();clearReview();$("review").classList.add("hidden");await authUI()};
+$("findBhajan").onclick=findBhajan;
+$("ownerQ").addEventListener("keydown",e=>{if(e.key==="Enter")findBhajan()});
+$("startBlank").onclick=()=>{clearReview();$("review").classList.remove("hidden");setCategory("other");$("findmsg").textContent="Blank review card opened.";$("findmsg").classList.remove("hidden")};
 $("save").onclick=async()=>{
   const row={
     title:$("title").value.trim(),
@@ -174,19 +269,20 @@ $("save").onclick=async()=>{
     category_id:Number($("cat").value),
     author_name:$("author").value.trim()||null,
     author_note:$("anote").value.trim()||null,
+    source_name:$("sourceName").value.trim()||null,
     source_url:$("source").value.trim()||null,
     youtube_url:$("youtube").value.trim()||null,
     spotify_url:$("spotify").value.trim()||null,
     status:$("status").value
   };
   if(!row.title||!row.lyrics_devanagari){
-    $("savemsg").textContent="Title and Devanagari lyrics are required.";
+    $("savemsg").textContent="Please confirm a title and Devanagari lyrics before saving.";
     $("savemsg").classList.remove("hidden");return;
   }
   const {error}=await client.from("bhajans").insert(row);
   $("savemsg").textContent=error?error.message:"Saved to your notebook.";
   $("savemsg").classList.remove("hidden");
-  if(!error){["title","titleDev","lyricsDev","lyricsEng","author","anote","source","youtube","spotify"].forEach(id=>$(id).value="");await load()}
+  if(!error){await load()}
 };
 load();authUI();
 </script>
