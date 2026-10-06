@@ -44,7 +44,7 @@ textarea{min-height:150px}.notice{background:#fff2d8;padding:11px 12px;border-ra
 <main>
 <h1><button id="homeTitle" style="all:unset;cursor:pointer">Bhajan Notebook</button></h1>
 <div class="sub">एक खुली भजन-पोथी · a virtual open notebook of bhajans</div>
-<div class="top-actions"><button class="btn secondary" id="ownerTop">Owner login</button></div>
+<div class="top-actions"><button class="btn secondary" id="aboutTop">About</button> <button class="btn secondary" id="ownerTop">Owner login</button></div>
 
 <section id="home">
   <div class="search">
@@ -56,6 +56,22 @@ textarea{min-height:150px}.notice{background:#fff2d8;padding:11px 12px;border-ra
   <div id="empty" class="empty-state">
     <strong>No published bhajans yet.</strong>
     <span class="meta">The notebook is waiting for its first bhajan.</span>
+  </div>
+</section>
+
+
+<section id="about" class="reader hidden">
+  <div class="toolbar">
+    <button class="btn secondary" id="aboutBack">← Notebook</button>
+  </div>
+  <div class="panel">
+    <h2 style="text-align:center;margin-top:0">Why this notebook exists</h2>
+    <p>This is my personal bhajan diary, opened up online so it is easier to carry, search, and enjoy during kirtans.</p>
+    <p>In many kirtan gatherings in India, people keep handwritten notebooks of bhajans. Songs are learned from family, friends, temples, satsangs, and other singers, and many have been passed along across generations. This notebook is a digital continuation of that tradition.</p>
+    <p>I have not written these bhajans and I do not claim authorship of them. Wherever I can identify the original author, poet, composer, performer, or source, I try to preserve that attribution.</p>
+    <p>If you use a bhajan from this notebook professionally or publish it elsewhere, please credit the original author or rights holder wherever known and verify the appropriate permissions for your use.</p>
+    <p>I do not endorse plagiarism or unauthorized use. The purpose of this site is personal and community enjoyment of bhajans, especially in kirtan—not to claim ownership of someone else’s creative work.</p>
+    <p class="meta" style="margin-top:22px">If you notice an attribution that is missing or incorrect, please treat the source information in the notebook as something to verify rather than as a claim of ownership.</p>
   </div>
 </section>
 
@@ -152,7 +168,7 @@ const client=supabase.createClient(U,K);
 let cats=[],items=[],cur=null,editingId=null;
 const $=x=>document.getElementById(x);
 const esc=s=>String(s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
-function show(x){["home","reader","admin"].forEach(i=>$(i).classList.toggle("hidden",i!==x))}
+function show(x){["home","about","reader","admin"].forEach(i=>$(i).classList.toggle("hidden",i!==x))}
 function romanize(dev){
   if(!dev)return "";
   try{
@@ -326,6 +342,8 @@ window.addEventListener("hashchange",()=>{
   if(id)openB(id,false); else show("home");
 });
 $("homeTitle").onclick=()=>{show("home");setBhajanUrl(null)};
+$("aboutTop").onclick=()=>{show("about");setBhajanUrl(null)};
+$("aboutBack").onclick=()=>{show("home");setBhajanUrl(null)};
 $("ownerTop").onclick=ownerOpen;
 $("cancelLogin").onclick=()=>show("home");
 $("backOwner").onclick=()=>show("home");
