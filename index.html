@@ -42,7 +42,7 @@ textarea{min-height:150px}.notice{background:#fff2d8;padding:11px 12px;border-ra
 </head>
 <body>
 <main>
-<h1>Bhajan Notebook</h1>
+<h1><button id="homeTitle" style="all:unset;cursor:pointer">Bhajan Notebook</button></h1>
 <div class="sub">एक खुली भजन-पोथी · a virtual open notebook of bhajans</div>
 <div class="top-actions"><button class="btn secondary" id="ownerTop">Owner login</button></div>
 
@@ -321,6 +321,7 @@ window.addEventListener("hashchange",()=>{
   const id=idFromHash();
   if(id)openB(id,false); else show("home");
 });
+$("homeTitle").onclick=()=>{show("home");setBhajanUrl(null)};
 $("ownerTop").onclick=ownerOpen;
 $("cancelLogin").onclick=()=>show("home");
 $("backOwner").onclick=()=>show("home");
