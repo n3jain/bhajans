@@ -1,0 +1,7 @@
+{
+  "name": "bhajan-notebook",
+  "private": true,
+  "scripts": {
+    "test": "node tests/smoke.mjs"
+  }
+}
