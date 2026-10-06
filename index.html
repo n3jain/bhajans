@@ -22,7 +22,7 @@ input,textarea,select{width:100%;padding:12px;border:1px solid var(--line);borde
 .chip{background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:7px 11px;cursor:pointer}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
 .card,.panel,.lyrics{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px}
-.card{cursor:pointer}.meta{font-size:13px;color:var(--muted)}.hidden{display:none!important}
+.card{cursor:pointer}.meta{font-size:13px;color:var(--muted)}.status-badge{display:inline-block;margin-top:8px;padding:4px 8px;border-radius:999px;border:1px solid var(--line);font-size:12px}.status-badge.pending{background:#fff2d8}.status-badge.complete{background:#eef8ee}.hidden{display:none!important}
 .reader{max-width:720px;margin:auto}.lyrics{white-space:pre-wrap;line-height:2;font-size:20px;margin-top:18px}
 .toolbar{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
 .panel{max-width:760px;margin:20px auto}.field{margin:11px 0}.field label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
@@ -199,7 +199,11 @@ function render(cat=""){
   const raw=$("q").value.trim();
   const q=raw.toLowerCase();
   const r=items.filter(b=>(!cat||String(b.category_id)===String(cat))&&(!q||[b.title,b.title_devanagari,b.lyrics_devanagari,b.lyrics_transliteration,b.author_name].filter(Boolean).join(" ").toLowerCase().includes(q)));
-  $("list").innerHTML=r.map(b=>'<div class="card" data-id="'+b.id+'"><h3>'+esc(b.title_devanagari||b.title)+'</h3><div>'+esc(b.title_devanagari?b.title:"")+'</div><div class="meta">'+esc((b.categories?.name||"")+(b.author_name?" · "+b.author_name:""))+'</div></div>').join("");
+  $("list").innerHTML=r.map(b=>{
+    const complete=b.lyrics_status==="complete";
+    const badge='<div class="status-badge '+(complete?'complete':'pending')+'">'+(complete?'Complete':'Lyrics pending')+'</div>';
+    return '<div class="card" data-id="'+b.id+'"><h3>'+esc(b.title_devanagari||b.title)+'</h3><div>'+esc(b.title_devanagari?b.title:"")+'</div><div class="meta">'+esc((b.categories?.name||"")+(b.author_name?" · "+b.author_name:""))+'</div>'+badge+'</div>';
+  }).join("");
   if(r.length===0){
     $("empty").classList.remove("hidden");
     if(raw){
