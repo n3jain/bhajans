@@ -63,7 +63,7 @@ textarea{min-height:150px}.notice{background:#fff2d8;padding:11px 12px;border-ra
   <div class="toolbar">
     <button class="btn secondary" id="back">← Notebook</button>
     <button class="btn secondary" id="dev">देवनागरी</button>
-    <button class="btn secondary" id="eng">English</button>
+    <button class="btn secondary" id="eng">English</button>\n    <button class="btn secondary hidden" id="editBhajan">Edit bhajan</button>
   </div>
   <h2 id="rt" style="text-align:center"></h2>
   <div id="rm" class="meta" style="text-align:center"></div>
@@ -146,7 +146,7 @@ textarea{min-height:150px}.notice{background:#fff2d8;padding:11px 12px;border-ra
 const U="https://fssdfwgcrefwsihowofz.supabase.co";
 const K="sb_publishable_St_uGRfOiZ2Za-KWrfbfKA_mUzbkK5P";
 const client=supabase.createClient(U,K);
-let cats=[],items=[],cur=null;
+let cats=[],items=[],cur=null,editingId=null;
 const $=x=>document.getElementById(x);
 const esc=s=>String(s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
 function show(x){["home","reader","admin"].forEach(i=>$(i).classList.toggle("hidden",i!==x))}
@@ -305,7 +305,7 @@ $("signin").onclick=async()=>{
 $("logout").onclick=async()=>{await client.auth.signOut();clearReview();$("review").classList.add("hidden");await authUI()};
 $("findBhajan").onclick=findBhajan;
 $("ownerQ").addEventListener("keydown",e=>{if(e.key==="Enter")findBhajan()});
-$("startBlank").onclick=()=>{clearReview();$("review").classList.remove("hidden");setCategory("other");$("findmsg").textContent="Blank review card opened.";$("findmsg").classList.remove("hidden")};
+$("startBlank").onclick=()=>{editingId=null;clearReview();$("review").classList.remove("hidden");setCategory("other");$("findmsg").textContent="Blank review card opened.";$("findmsg").classList.remove("hidden")};\n$("editBhajan").onclick=async()=>{const {data:{session}}=await client.auth.getSession();if(!session){ownerOpen();return}if(!cur)return;show("admin");await authUI();fillEditor(cur);};
 $("save").onclick=async()=>{
   let title=$("title").value.trim();
   let titleDev=$("titleDev").value.trim();
