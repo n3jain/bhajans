@@ -47,6 +47,7 @@ textarea{min-height:150px}.notice{background:#fff2d8;padding:11px 12px;border-ra
 <div class="top-actions"><button class="btn secondary" id="aboutTop">About</button> <button class="btn secondary" id="ownerTop">Owner login</button></div>
 
 <section id="home">
+  <div class="toolbar" style="margin-bottom:16px"><button class="btn secondary" id="indexDev">देवनागरी</button><button class="btn secondary" id="indexRoman">Roman</button></div>
   <div class="search">
     <input id="q" placeholder="Type a few words you remember…">
     <button class="btn" id="go">Search</button>
@@ -165,7 +166,7 @@ textarea{min-height:150px}.notice{background:#fff2d8;padding:11px 12px;border-ra
 const U="https://fssdfwgcrefwsihowofz.supabase.co";
 const K="sb_publishable_St_uGRfOiZ2Za-KWrfbfKA_mUzbkK5P";
 const client=supabase.createClient(U,K);
-let cats=[],items=[],cur=null,editingId=null;
+let cats=[],items=[],cur=null,editingId=null,indexTitleMode=localStorage.getItem("bhajanTitleMode")||"dev";
 const $=x=>document.getElementById(x);
 const esc=s=>String(s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
 function show(x){["home","about","reader","admin"].forEach(i=>$(i).classList.toggle("hidden",i!==x))}
@@ -176,6 +177,10 @@ function romanize(dev){
       .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
       .replace(/ṃ/g,"m").replace(/ḥ/g,"h");
   }catch{return ""}
+}
+function titleForIndex(b){
+  if(indexTitleMode==="roman") return b.title&&b.title!==b.title_devanagari?b.title:(romanize(b.title_devanagari||b.title)||b.title_devanagari||b.title||"");
+  return b.title_devanagari||b.title||"";
 }
 function devanagarize(roman){
   if(!roman)return "";
@@ -218,7 +223,7 @@ function render(cat=""){
   $("list").innerHTML=r.map(b=>{
     const complete=b.lyrics_status==="complete";
     const badge='<div class="status-badge '+(complete?'complete':'pending')+'">'+(complete?'Complete':'Lyrics pending')+'</div>';
-    return '<div class="card" data-id="'+b.id+'"><h3>'+esc(b.title_devanagari||b.title)+'</h3><div>'+esc(b.title_devanagari?b.title:"")+'</div><div class="meta">'+esc((b.categories?.name||"")+(b.author_name?" · "+b.author_name:""))+'</div>'+badge+'</div>';
+    return '<div class="card" data-id="'+b.id+'"><h3>'+esc(titleForIndex(b))+'</h3><div class="meta">'+esc((b.categories?.name||"")+(b.author_name?" · "+b.author_name:""))+'</div>'+badge+'</div>';
   }).join("");
   if(r.length===0){
     $("empty").classList.remove("hidden");
@@ -319,6 +324,8 @@ async function findBhajan(){
     $("findBhajan").textContent="Find bhajan";
   }
 }
+$("indexDev").onclick=()=>{indexTitleMode="dev";localStorage.setItem("bhajanTitleMode","dev");render()};
+$("indexRoman").onclick=()=>{indexTitleMode="roman";localStorage.setItem("bhajanTitleMode","roman");render()};
 $("go").onclick=()=>render();
 $("q").oninput=()=>render();
 $("q").addEventListener("keydown",e=>{if(e.key==="Enter")render()});
