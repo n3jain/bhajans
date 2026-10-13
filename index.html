@@ -191,6 +191,8 @@ textarea{min-height:150px}.notice{background:#fff2d8;padding:11px 12px;border-ra
     </div>
     <div class="small-actions">
       <button class="btn secondary" id="startBlank">Start from scratch</button>
+      <label class="btn secondary hidden" id="voiceUploadV2" for="voiceFileV2">Add from voice</label>
+      <input class="hidden" id="voiceFileV2" type="file" accept="audio/*">
       <button class="btn secondary" id="backOwner">Back to notebook</button>
     </div>
     <div id="findmsg" class="notice hidden"></div><div id="candidates" class="panel hidden" style="margin-top:16px"></div>
@@ -252,6 +254,7 @@ function applyFeatureFlags(){
   $("login").classList.toggle("hidden",!!multi);
   $("userLoginV2").classList.toggle("hidden",!multi);
   $("kirtanTop").classList.toggle("hidden",!window.featureEnabled?.("kirtanBuilder"));
+  $("voiceUploadV2").classList.toggle("hidden",!window.featureEnabled?.("imageVoiceIngestion"));
 }
 
 const esc=s=>String(s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
