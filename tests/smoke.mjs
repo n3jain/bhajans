@@ -55,3 +55,12 @@ assert(html.includes('resetPasswordForEmail'), 'forgot password flow missing');
 assert(html.includes('PASSWORD_RECOVERY'), 'password recovery event missing');
 assert(!/localStorage\.setItem\([^)]*(?:pw|password)/i.test(html), 'password must not be stored in localStorage');
 assert(!/sessionStorage\.setItem\([^)]*(?:pw|password)/i.test(html), 'password must not be stored in sessionStorage');
+
+
+for (const id of ['voiceUploadV2','voiceFileV2']) {
+  assert(new RegExp(`id=["']${id}["']`).test(html), `missing #${id}`);
+}
+assert(html.includes('async function ingestVoiceV2(file)'), 'voice ingestion handler missing');
+assert(html.includes('/functions/v1/bhajan-ingest'), 'voice ingestion endpoint missing');
+assert(html.includes('featureEnabled?.("imageVoiceIngestion")'), 'voice ingestion feature guard missing');
+assert(html.includes('24*1024*1024'), 'voice upload size guard missing');
