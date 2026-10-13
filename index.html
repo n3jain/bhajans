@@ -319,12 +319,12 @@ function renderKirtan(){
     const b=x.song_id?kirtanSongById(x.song_id):null;
     const title=b?(b.title_devanagari||b.title):x.title;
     const tag=x.role==="ganesh-opening"?"Opening":x.kind==="jaykara"?"जयकार":x.placement==="late"?"Late / high energy":x.locked?"Closing":"Bhajan";
-    return '<div class="card" style="margin:8px 0;cursor:default"><div class="review-head"><div><strong>'+(i+1)+'. '+esc(title)+'</strong><div class="meta">'+esc(tag)+'</div></div><div><input data-kmin="'+i+'" type="number" min="1" max="30" value="'+(Number(x.minutes)||1)+'" style="width:74px"></div></div><div class="small-actions">'+(i>0&&!x.locked?'<button class="btn secondary" data-kup="'+i+'">↑</button>':'')+(i<kirtanPlan.items.length-1&&!x.locked?'<button class="btn secondary" data-kdown="'+i+'">↓</button>':'')+(!x.locked?'<button class="btn secondary" data-kremove="'+i+'">Remove</button>':'')+'</div></div>';
+    return '<div class="card" style="margin:8px 0;cursor:default"><div class="review-head"><div><strong>'+(i+1)+'. '+esc(title)+'</strong><div class="meta">'+esc(tag)+'</div></div><div><input data-kmin="'+i+'" type="number" min="1" max="30" value="'+(Number(x.minutes)||1)+'" style="width:74px"></div></div><div class="small-actions">'+(i>0&&!x.locked?'<button class="btn secondary" data-kup="'+i+'">↑</button>':'')+(i<kirtanPlan.items.length-1&&!x.locked&&!kirtanPlan.items[i+1]?.locked?'<button class="btn secondary" data-kdown="'+i+'">↓</button>':'')+(!x.locked?'<button class="btn secondary" data-kremove="'+i+'">Remove</button>':'')+'</div></div>';
   }).join("");
   document.querySelectorAll("[data-kmin]").forEach(el=>el.onchange=()=>{kirtanPlan.items[Number(el.dataset.kmin)].minutes=Number(el.value)||1;saveKirtanPlan();renderKirtan()});
   document.querySelectorAll("[data-kremove]").forEach(el=>el.onclick=()=>{kirtanPlan.items.splice(Number(el.dataset.kremove),1);saveKirtanPlan();renderKirtan()});
   document.querySelectorAll("[data-kup]").forEach(el=>el.onclick=()=>{const i=Number(el.dataset.kup),a=kirtanPlan.items;[a[i-1],a[i]]=[a[i],a[i-1]];saveKirtanPlan();renderKirtan()});
-  document.querySelectorAll("[data-kdown]").forEach(el=>el.onclick=()=>{const i=Number(el.dataset.kdown),a=kirtanPlan.items;[a[i+1],a[i]]=[a[i],a[i+1]];saveKirtanPlan();renderKirtan()});
+  document.querySelectorAll("[data-kdown]").forEach(el=>el.onclick=()=>{const i=Number(el.dataset.kdown),a=kirtanPlan.items;if(a[i+1]?.locked)return;[a[i+1],a[i]]=[a[i],a[i+1]];saveKirtanPlan();renderKirtan()});
 }
 function populateKirtanSongs(){
   const opts=items.map(b=>'<option value="'+b.id+'">'+esc(b.title_devanagari||b.title)+'</option>').join("");
