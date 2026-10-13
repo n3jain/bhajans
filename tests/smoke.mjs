@@ -40,9 +40,10 @@ console.log('Smoke tests passed');
 
 
 const flags = fs.readFileSync('feature-flags.js','utf8');
-for (const name of ['multiUserAccounts','songOwnershipAndCopy','imageVoiceIngestion','kirtanBuilder','startKirtanMode']) {
+for (const name of ['multiUserAccounts','songOwnershipAndCopy','imageVoiceIngestion','startKirtanMode']) {
   assert(new RegExp(name+'\\s*:\\s*false').test(flags), name+' must default off');
 }
+assert(/kirtanBuilder\\s*:\\s*true/.test(flags), 'kirtanBuilder should be enabled');
 assert(flags.includes('window.featureEnabled'), 'featureEnabled helper missing');
 
 
