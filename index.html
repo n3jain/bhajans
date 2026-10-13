@@ -425,6 +425,50 @@ async function accountOpenV2(){
   $("userLoginV2").classList.remove("hidden");
   $("resetPanelV2").classList.add("hidden");
 }
+async function ingestVoiceV2(file){
+  const {data:{session}}=await client.auth.getSession();
+  if(!session){
+    $("findmsg").textContent="Sign in before adding a voice recording.";
+    $("findmsg").classList.remove("hidden");
+    return;
+  }
+  if(file.size>24*1024*1024){
+    $("findmsg").textContent="This recording is too large. Please use a recording under 24 MB.";
+    $("findmsg").classList.remove("hidden");
+    return;
+  }
+  $("findmsg").textContent="Transcribing voice recording…";
+  $("findmsg").classList.remove("hidden");
+  const fd=new FormData();
+  fd.append("file",file,file.name||"bhajan-audio");
+  try{
+    const r=await fetch(U+"/functions/v1/bhajan-ingest",{
+      method:"POST",
+      headers:{Authorization:"Bearer "+session.access_token},
+      body:fd
+    });
+    const data=await r.json();
+    if(!r.ok)throw new Error(data.error||"Transcription failed");
+    editingId=null;
+    clearReview();
+    $("review").classList.remove("hidden");
+    $("lyricsDev").value=data.lyrics_devanagari||"";
+    $("lyricsEng").value=romanize(data.lyrics_devanagari||"");
+    const first=(data.lyrics_devanagari||"").split("\n").find(Boolean)||"";
+    $("titleDev").value=first;
+    $("title").value=romanize(first)||first;
+    $("sourceName").value=data.source_name||"User-provided voice recording";
+    $("findmsg").textContent="Draft transcription ready. Review and edit before saving.";
+  }catch(e){
+    $("findmsg").textContent=e.message||String(e);
+  }
+}
+$("voiceFileV2").onchange=e=>{
+  const file=e.target.files?.[0];
+  if(file)ingestVoiceV2(file);
+  e.target.value="";
+};
+
 async function findBhajan(){
   const q=$("ownerQ").value.trim();
   if(q.length<3){$("findmsg").textContent="Type at least a few characters.";$("findmsg").classList.remove("hidden");return}
