@@ -16,6 +16,7 @@ assert(html.includes('update(row).eq("id",editingId)'), 'edit path must update e
 assert(html.includes('location.hash=id?"/bhajan/"'), 'per-song hash routing missing');
 assert(html.includes('function idFromHash('), 'direct-link parser missing');
 assert(html.includes('load();authUI();'), 'app bootstrap missing');
+assert(html.includes('<script src="feature-flags.js"></script>'), 'feature flag script missing');
 
 const badEscapes = [
   /<\/script>\\n<script/,
@@ -36,3 +37,10 @@ if (failures.length) {
   process.exit(1);
 }
 console.log('Smoke tests passed');
+
+
+const flags = fs.readFileSync('feature-flags.js','utf8');
+for (const name of ['multiUserAccounts','songOwnershipAndCopy','imageVoiceIngestion','kirtanBuilder','startKirtanMode']) {
+  assert(new RegExp(name+'\\s*:\\s*false').test(flags), name+' must default off');
+}
+assert(flags.includes('window.featureEnabled'), 'featureEnabled helper missing');
