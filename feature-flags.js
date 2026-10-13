@@ -135,3 +135,78 @@ document.addEventListener("DOMContentLoaded", () => {
 
   syncKirtanFields();
 });
+
+
+document.addEventListener("DOMContentLoaded", () => {
+  if (!window.featureEnabled?.("kirtanBuilder")) return;
+  const byId = id => document.getElementById(id);
+  const share = byId("shareKirtanPlanBtn");
+  if (!share) return;
+
+  const slugBase = name => String(name || "kirtan")
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g,"-")
+    .replace(/^-+|-+$/g,"")
+    .slice(0,80) || "kirtan";
+
+  const suffix = () => {
+    const a = new Uint8Array(3);
+    crypto.getRandomValues(a);
+    return Array.from(a).map(x => x.toString(16).padStart(2,"0")).join("");
+  };
+
+  async function createSharedKirtan() {
+    byId("saveKirtanPlanBtn").click();
+    const name = byId("kirtanName").value.trim() || "Kirtan";
+    const slug = slugBase(name) + "-" + suffix();
+    const snapshot = JSON.parse(JSON.stringify(kirtanPlan));
+    const { error } = await client.from("kirtan_plans").insert({slug,name,plan:snapshot});
+    if (error) throw error;
+    return location.origin + location.pathname + "#/kirtan/" + slug;
+  }
+
+  async function loadSharedKirtan() {
+    const prefix = "#/kirtan/";
+    if (!location.hash.startsWith(prefix)) return false;
+    const slug = decodeURIComponent(location.hash.slice(prefix.length));
+    if (!slug) return false;
+    const { data, error } = await client.from("kirtan_plans").select("name,plan").eq("slug",slug).maybeSingle();
+    if (error || !data?.plan || !Array.isArray(data.plan.items)) return false;
+    kirtanPlan = data.plan;
+    saveKirtanPlan();
+    populateKirtanSongs();
+    show("kirtan");
+    if (byId("kirtanName")) byId("kirtanName").value = data.name || kirtanPlan.name || "Kirtan";
+    renderKirtan();
+    return true;
+  }
+
+  share.onclick = async () => {
+    share.disabled = true;
+    share.textContent = "Creating link…";
+    try {
+      const url = await createSharedKirtan();
+      try { await navigator.clipboard.writeText(url); } catch {}
+      const summary = byId("kirtanSummary");
+      let box = byId("kirtanShareResult");
+      if (!box) {
+        box = document.createElement("div");
+        box.id = "kirtanShareResult";
+        box.className = "notice";
+        box.style.wordBreak = "break-all";
+        summary.parentNode.insertBefore(box, summary.nextSibling);
+      }
+      box.innerHTML = '<strong>Share this kirtan</strong><br><a href="' + url + '">' + url + '</a>';
+      share.textContent = "Link copied";
+    } catch (e) {
+      share.textContent = "Share failed";
+      byId("kirtanSummary").textContent = e.message || String(e);
+    } finally {
+      share.disabled = false;
+      setTimeout(() => share.textContent = "Share plan", 1800);
+    }
+  };
+
+  window.addEventListener("hashchange", () => { loadSharedKirtan(); });
+  loadSharedKirtan();
+});
