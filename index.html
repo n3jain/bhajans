@@ -91,6 +91,26 @@ textarea{min-height:150px}.notice{background:#fff2d8;padding:11px 12px;border-ra
 </section>
 
 <section id="admin" class="hidden">
+  <div class="panel hidden" id="userLoginV2">
+    <h2>Your Bhajan Notebook account</h2>
+    <p class="meta">Create an account to add songs, keep them private, or share them publicly.</p>
+    <div class="field"><label>Email</label><input id="userEmail" type="email" autocomplete="email"></div>
+    <div class="field"><label>Password</label><input id="userPw" type="password" autocomplete="current-password"></div>
+    <div class="small-actions">
+      <button class="btn" id="userSignin">Sign in</button>
+      <button class="btn secondary" id="userSignup">Create account</button>
+      <button class="btn secondary" id="userForgot">Forgot password?</button>
+      <button class="btn secondary" id="userBack">Back to notebook</button>
+    </div>
+    <div id="userAuthMsg" class="notice hidden"></div>
+  </div>
+  <div class="panel hidden" id="resetPanelV2">
+    <h2>Set a new password</h2>
+    <div class="field"><label>New password</label><input id="newPwV2" type="password" autocomplete="new-password"></div>
+    <div class="field"><label>Confirm new password</label><input id="newPw2V2" type="password" autocomplete="new-password"></div>
+    <button class="btn" id="saveNewPwV2">Update password</button>
+    <div id="resetMsgV2" class="notice hidden"></div>
+  </div>
   <div class="panel" id="login">
     <h2>Owner login</h2>
     <p class="meta">Sign in to search the web, review a bhajan, and save it to the notebook.</p>
@@ -173,6 +193,8 @@ function applyFeatureFlags(){
   const multi=window.featureEnabled?.("multiUserAccounts");
   $("ownerTop").classList.toggle("hidden",!!multi);
   $("accountV2").classList.toggle("hidden",!multi);
+  $("login").classList.toggle("hidden",!!multi);
+  $("userLoginV2").classList.toggle("hidden",!multi);
 }
 
 const esc=s=>String(s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
@@ -278,6 +300,13 @@ function fillEditor(b){
   if(b.category_id)$("cat").value=String(b.category_id);
 }
 async function ownerOpen(){show("admin");await authUI()}
+async function accountOpenV2(){
+  show("admin");
+  $("login").classList.add("hidden");
+  $("editor").classList.add("hidden");
+  $("userLoginV2").classList.remove("hidden");
+  $("resetPanelV2").classList.add("hidden");
+}
 async function findBhajan(){
   const q=$("ownerQ").value.trim();
   if(q.length<3){$("findmsg").textContent="Type at least a few characters.";$("findmsg").classList.remove("hidden");return}
@@ -359,9 +388,47 @@ $("homeTitle").onclick=()=>{show("home");setBhajanUrl(null)};
 $("aboutTop").onclick=()=>{show("about");setBhajanUrl(null)};
 $("aboutBack").onclick=()=>{show("home");setBhajanUrl(null)};
 $("ownerTop").onclick=ownerOpen;
-$("accountV2").onclick=ownerOpen;
+$("accountV2").onclick=accountOpenV2;
 $("cancelLogin").onclick=()=>show("home");
 $("backOwner").onclick=()=>show("home");
+$("userSignin").onclick=async()=>{
+  const email=$("userEmail").value.trim(),password=$("userPw").value;
+  const {error}=await client.auth.signInWithPassword({email,password});
+  $("userPw").value="";
+  $("userAuthMsg").textContent=error?error.message:"Signed in.";
+  $("userAuthMsg").classList.remove("hidden");
+  if(!error){await authUI();await load();show("home")}
+};
+$("userSignup").onclick=async()=>{
+  const email=$("userEmail").value.trim(),password=$("userPw").value;
+  const {error}=await client.auth.signUp({email,password,options:{emailRedirectTo:location.origin+location.pathname}});
+  $("userPw").value="";
+  $("userAuthMsg").textContent=error?error.message:"Account created. Check your email to confirm your account.";
+  $("userAuthMsg").classList.remove("hidden");
+};
+$("userForgot").onclick=async()=>{
+  const email=$("userEmail").value.trim();
+  if(!email){$("userAuthMsg").textContent="Enter your email address first.";$("userAuthMsg").classList.remove("hidden");return}
+  const {error}=await client.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});
+  $("userAuthMsg").textContent=error?error.message:"Password reset email sent.";
+  $("userAuthMsg").classList.remove("hidden");
+};
+$("saveNewPwV2").onclick=async()=>{
+  const a=$("newPwV2").value,b=$("newPw2V2").value;
+  $("resetMsgV2").classList.remove("hidden");
+  if(a.length<8){$("resetMsgV2").textContent="Use at least 8 characters.";return}
+  if(a!==b){$("resetMsgV2").textContent="Passwords do not match.";return}
+  const {error}=await client.auth.updateUser({password:a});
+  $("newPwV2").value="";$("newPw2V2").value="";
+  $("resetMsgV2").textContent=error?error.message:"Password updated.";
+  if(!error){$("resetPanelV2").classList.add("hidden");show("home")}
+};
+$("userBack").onclick=()=>show("home");
+client.auth.onAuthStateChange(event=>{
+  if(event==="PASSWORD_RECOVERY"&&window.featureEnabled?.("multiUserAccounts")){
+    show("admin");$("userLoginV2").classList.add("hidden");$("resetPanelV2").classList.remove("hidden");
+  }
+});
 $("signin").onclick=async()=>{
   const {error}=await client.auth.signInWithPassword({email:$("email").value,password:$("pw").value});
   $("authmsg").textContent=error?error.message:"Signed in.";
