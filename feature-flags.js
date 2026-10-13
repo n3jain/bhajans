@@ -3,7 +3,7 @@
     multiUserAccounts: false,
     songOwnershipAndCopy: false,
     imageVoiceIngestion: false,
-    kirtanBuilder: false,
+    kirtanBuilder: true,
     startKirtanMode: false
   });
 
