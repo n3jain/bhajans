@@ -44,3 +44,13 @@ for (const name of ['multiUserAccounts','songOwnershipAndCopy','imageVoiceIngest
   assert(new RegExp(name+'\\s*:\\s*false').test(flags), name+' must default off');
 }
 assert(flags.includes('window.featureEnabled'), 'featureEnabled helper missing');
+
+
+for (const id of ['userLoginV2','userSignin','userSignup','userForgot','resetPanelV2','newPwV2','newPw2V2','saveNewPwV2']) {
+  assert(new RegExp(`id=["']${id}["']`).test(html), `missing #${id}`);
+}
+assert(html.includes('auth.signUp'), 'email signup flow missing');
+assert(html.includes('resetPasswordForEmail'), 'forgot password flow missing');
+assert(html.includes('PASSWORD_RECOVERY'), 'password recovery event missing');
+assert(!/localStorage\.setItem\([^)]*(?:pw|password)/i.test(html), 'password must not be stored in localStorage');
+assert(!/sessionStorage\.setItem\([^)]*(?:pw|password)/i.test(html), 'password must not be stored in sessionStorage');
