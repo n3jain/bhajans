@@ -44,7 +44,7 @@ textarea{min-height:150px}.notice{background:#fff2d8;padding:11px 12px;border-ra
 <main>
 <h1><button id="homeTitle" style="all:unset;cursor:pointer">Bhajan Notebook</button></h1>
 <div class="sub">एक खुली भजन-पोथी · a virtual open notebook of bhajans</div>
-<div class="top-actions"><button class="btn secondary" id="aboutTop">About</button> <button class="btn secondary" id="ownerTop">Owner login</button> <button class="btn secondary hidden" id="accountV2">Account</button></div>
+<div class="top-actions"><button class="btn secondary" id="aboutTop">About</button> <button class="btn secondary hidden" id="kirtanTop">Create Kirtan</button> <button class="btn secondary" id="ownerTop">Owner login</button> <button class="btn secondary hidden" id="accountV2">Account</button></div>
 
 <section id="home">
   <div class="toolbar" style="margin-bottom:16px"><button class="btn secondary" id="indexDev">देवनागरी</button><button class="btn secondary" id="indexRoman">Roman</button></div>
@@ -60,6 +60,61 @@ textarea{min-height:150px}.notice{background:#fff2d8;padding:11px 12px;border-ra
   </div>
 </section>
 
+
+<section id="kirtan" class="hidden">
+  <div class="panel">
+    <div class="review-head">
+      <div>
+        <h2 style="margin:0">Create Kirtan · Mata ki Chowki</h2>
+        <div class="meta">Plan the flow, pace, and duration. No login required.</div>
+      </div>
+      <button class="btn secondary" id="kirtanBack">← Notebook</button>
+    </div>
+    <div class="row">
+      <div class="field"><label>Kirtan name</label><input id="kirtanName" value="Mata ki Chowki"></div>
+      <div class="field"><label>Target duration (minutes)</label><input id="kirtanTarget" type="number" min="20" max="240" value="60"></div>
+    </div>
+    <div id="kirtanSummary" class="notice"></div>
+
+    <div class="source-box">
+      <strong>Recommended flow</strong>
+      <div class="meta" style="margin-top:6px">Ganesh opening → Mata bhajans → optional other bhajans / जयकार → faster-energy songs toward the later half → Durga Chalisa → Bhog → Ganesh Aarti → Mata Aarti.</div>
+    </div>
+
+    <div class="row">
+      <div class="field"><label>Ganesh opening · required/recommended</label><select id="ganeshOpening"></select></div>
+      <div class="field"><label>Opening duration</label><input id="ganeshMinutes" type="number" min="1" max="30" value="5"></div>
+    </div>
+    <button class="btn secondary" id="setGaneshOpening">Set Ganesh opening</button>
+
+    <div class="row" style="margin-top:18px">
+      <div class="field"><label>Add bhajan</label><select id="kirtanSong"></select></div>
+      <div class="field"><label>Minutes</label><input id="kirtanSongMinutes" type="number" min="1" max="30" value="5"></div>
+    </div>
+    <div class="small-actions">
+      <button class="btn" id="addKirtanSong">Add song</button>
+      <button class="btn secondary" id="addJaykara">+ जयकार</button>
+      <button class="btn secondary" id="resetKirtan">Reset template</button>
+    </div>
+
+    <div id="kirtanItems" style="margin-top:22px"></div>
+    <div class="small-actions">
+      <button class="btn" id="startKirtan">Start Kirtan</button>
+    </div>
+  </div>
+</section>
+
+<section id="kirtanRun" class="reader hidden">
+  <div class="toolbar">
+    <button class="btn secondary" id="exitKirtan">← Builder</button>
+    <button class="btn secondary" id="prevKirtan">Previous</button>
+    <button class="btn" id="nextKirtan">Next</button>
+  </div>
+  <div id="kirtanRunProgress" class="meta" style="text-align:center;margin-top:18px"></div>
+  <h2 id="kirtanRunTitle" style="text-align:center"></h2>
+  <div id="kirtanRunMeta" class="meta" style="text-align:center"></div>
+  <div id="kirtanRunLyrics" class="lyrics"></div>
+</section>
 
 <section id="about" class="reader hidden">
   <div class="toolbar">
@@ -188,6 +243,7 @@ const U="https://fssdfwgcrefwsihowofz.supabase.co";
 const K="sb_publishable_St_uGRfOiZ2Za-KWrfbfKA_mUzbkK5P";
 const client=supabase.createClient(U,K);
 let cats=[],items=[],cur=null,editingId=null,indexTitleMode=localStorage.getItem("bhajanTitleMode")||"dev";
+let kirtanPlan=null,kirtanRunIndex=0;
 const $=x=>document.getElementById(x);
 function applyFeatureFlags(){
   const multi=window.featureEnabled?.("multiUserAccounts");
@@ -195,10 +251,11 @@ function applyFeatureFlags(){
   $("accountV2").classList.toggle("hidden",!multi);
   $("login").classList.toggle("hidden",!!multi);
   $("userLoginV2").classList.toggle("hidden",!multi);
+  $("kirtanTop").classList.toggle("hidden",!window.featureEnabled?.("kirtanBuilder"));
 }
 
 const esc=s=>String(s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
-function show(x){["home","about","reader","admin"].forEach(i=>$(i).classList.toggle("hidden",i!==x))}
+function show(x){["home","about","reader","admin","kirtan","kirtanRun"].forEach(i=>$(i).classList.toggle("hidden",i!==x))}
 function romanize(dev){
   if(!dev)return "";
   try{
@@ -228,6 +285,63 @@ function clearReview(){
   $("sourceBox").classList.add("hidden");
   $("savemsg").classList.add("hidden");
 }
+function defaultKirtanPlan(){
+  return {
+    name:"Mata ki Chowki",target:60,
+    items:[
+      {kind:"ritual",title:"Durga Chalisa",minutes:12,locked:true,placement:"closing"},
+      {kind:"ritual",title:"Bhog",minutes:5,locked:true,placement:"closing"},
+      {kind:"ritual",title:"Ganesh Aarti",minutes:5,locked:true,placement:"closing"},
+      {kind:"ritual",title:"Mata Aarti",minutes:7,locked:true,placement:"closing"}
+    ]
+  };
+}
+function loadKirtanPlan(){
+  try{kirtanPlan=JSON.parse(localStorage.getItem("bhajanKirtanPlan"))||defaultKirtanPlan()}catch{kirtanPlan=defaultKirtanPlan()}
+  if(!Array.isArray(kirtanPlan.items))kirtanPlan=defaultKirtanPlan();
+}
+function saveKirtanPlan(){localStorage.setItem("bhajanKirtanPlan",JSON.stringify(kirtanPlan))}
+function songPlacement(b){
+  const t=(b?.title_devanagari||b?.title||"").toLowerCase();
+  if(/वीर हनुमाना|veer hanumana|बजरंग|hanuman/.test(t))return "late";
+  return "middle";
+}
+function kirtanTotal(){return (kirtanPlan?.items||[]).reduce((n,x)=>n+(Number(x.minutes)||0),0)}
+function kirtanSongById(id){return items.find(x=>x.id===id)}
+function renderKirtan(){
+  if(!kirtanPlan)loadKirtanPlan();
+  $("kirtanName").value=kirtanPlan.name||"Mata ki Chowki";
+  $("kirtanTarget").value=kirtanPlan.target||60;
+  const total=kirtanTotal(),target=Number(kirtanPlan.target)||60,diff=target-total;
+  const hasGanesh=kirtanPlan.items.some(x=>x.kind==="song"&&x.role==="ganesh-opening");
+  $("kirtanSummary").innerHTML="<strong>"+total+" / "+target+" min planned</strong> · "+(diff>=0?diff+" min remaining":Math.abs(diff)+" min over")+(hasGanesh?"":"<br><span class='meta'>Ganesh opening is still missing.</span>");
+  $("kirtanItems").innerHTML=kirtanPlan.items.map((x,i)=>{
+    const b=x.song_id?kirtanSongById(x.song_id):null;
+    const title=b?(b.title_devanagari||b.title):x.title;
+    const tag=x.role==="ganesh-opening"?"Opening":x.kind==="jaykara"?"जयकार":x.placement==="late"?"Late / high energy":x.locked?"Closing":"Bhajan";
+    return '<div class="card" style="margin:8px 0;cursor:default"><div class="review-head"><div><strong>'+(i+1)+'. '+esc(title)+'</strong><div class="meta">'+esc(tag)+'</div></div><div><input data-kmin="'+i+'" type="number" min="1" max="30" value="'+(Number(x.minutes)||1)+'" style="width:74px"></div></div><div class="small-actions">'+(i>0&&!x.locked?'<button class="btn secondary" data-kup="'+i+'">↑</button>':'')+(i<kirtanPlan.items.length-1&&!x.locked?'<button class="btn secondary" data-kdown="'+i+'">↓</button>':'')+(!x.locked?'<button class="btn secondary" data-kremove="'+i+'">Remove</button>':'')+'</div></div>';
+  }).join("");
+  document.querySelectorAll("[data-kmin]").forEach(el=>el.onchange=()=>{kirtanPlan.items[Number(el.dataset.kmin)].minutes=Number(el.value)||1;saveKirtanPlan();renderKirtan()});
+  document.querySelectorAll("[data-kremove]").forEach(el=>el.onclick=()=>{kirtanPlan.items.splice(Number(el.dataset.kremove),1);saveKirtanPlan();renderKirtan()});
+  document.querySelectorAll("[data-kup]").forEach(el=>el.onclick=()=>{const i=Number(el.dataset.kup),a=kirtanPlan.items;[a[i-1],a[i]]=[a[i],a[i-1]];saveKirtanPlan();renderKirtan()});
+  document.querySelectorAll("[data-kdown]").forEach(el=>el.onclick=()=>{const i=Number(el.dataset.kdown),a=kirtanPlan.items;[a[i+1],a[i]]=[a[i],a[i+1]];saveKirtanPlan();renderKirtan()});
+}
+function populateKirtanSongs(){
+  const opts=items.map(b=>'<option value="'+b.id+'">'+esc(b.title_devanagari||b.title)+'</option>').join("");
+  $("kirtanSong").innerHTML=opts;
+  const ganesh=items.filter(b=>(b.categories?.name||"").toLowerCase()==="ganesh");
+  $("ganeshOpening").innerHTML=ganesh.map(b=>'<option value="'+b.id+'">'+esc(b.title_devanagari||b.title)+'</option>').join("");
+}
+function openKirtanBuilder(){loadKirtanPlan();populateKirtanSongs();show("kirtan");renderKirtan()}
+function renderKirtanRun(){
+  const a=kirtanPlan?.items||[];if(!a.length){show("kirtan");return}
+  kirtanRunIndex=Math.max(0,Math.min(kirtanRunIndex,a.length-1));const x=a[kirtanRunIndex],b=x.song_id?kirtanSongById(x.song_id):null;
+  $("kirtanRunProgress").textContent=(kirtanRunIndex+1)+" of "+a.length+" · planned "+x.minutes+" min";
+  $("kirtanRunTitle").textContent=b?(b.title_devanagari||b.title):x.title;
+  $("kirtanRunMeta").textContent=x.kind==="song"?(b?.categories?.name||"Bhajan"):(x.kind==="jaykara"?"Flexible जयकार":"Ritual");
+  $("kirtanRunLyrics").textContent=b?(b.lyrics_devanagari||b.lyrics_transliteration||""):(x.kind==="jaykara"?"जयकार — lead naturally with the group.":"");
+  $("prevKirtan").disabled=kirtanRunIndex===0;$("nextKirtan").disabled=kirtanRunIndex===a.length-1;
+}
 function setCategory(slug){
   const c=cats.find(x=>x.slug===slug);
   if(c)$("cat").value=String(c.id);
@@ -242,6 +356,7 @@ async function load(){
   $("cat").innerHTML=cats.map(c=>'<option value="'+c.id+'">'+esc(c.name)+'</option>').join("");
   document.querySelectorAll(".chip").forEach(b=>b.onclick=()=>render(b.dataset.c));
   render();
+  if(window.featureEnabled?.("kirtanBuilder"))populateKirtanSongs();
   const direct=idFromHash();
   if(direct && items.some(x=>x.id===direct)) openB(direct,false);
 }
@@ -386,6 +501,33 @@ window.addEventListener("hashchange",()=>{
 });
 $("homeTitle").onclick=()=>{show("home");setBhajanUrl(null)};
 $("aboutTop").onclick=()=>{show("about");setBhajanUrl(null)};
+$("kirtanTop").onclick=openKirtanBuilder;
+$("kirtanBack").onclick=()=>show("home");
+$("kirtanName").onchange=()=>{kirtanPlan.name=$("kirtanName").value.trim()||"Mata ki Chowki";saveKirtanPlan()};
+$("kirtanTarget").onchange=()=>{kirtanPlan.target=Number($("kirtanTarget").value)||60;saveKirtanPlan();renderKirtan()};
+$("setGaneshOpening").onclick=()=>{
+  const id=$("ganeshOpening").value;if(!id)return;
+  kirtanPlan.items=kirtanPlan.items.filter(x=>x.role!=="ganesh-opening");
+  kirtanPlan.items.unshift({kind:"song",song_id:id,minutes:Number($("ganeshMinutes").value)||5,role:"ganesh-opening",placement:"opening"});
+  saveKirtanPlan();renderKirtan();
+};
+$("addKirtanSong").onclick=()=>{
+  const id=$("kirtanSong").value,b=kirtanSongById(id);if(!b)return;
+  const closeAt=kirtanPlan.items.findIndex(x=>x.locked);
+  const entry={kind:"song",song_id:id,minutes:Number($("kirtanSongMinutes").value)||5,placement:songPlacement(b)};
+  if(closeAt<0)kirtanPlan.items.push(entry);else kirtanPlan.items.splice(closeAt,0,entry);
+  saveKirtanPlan();renderKirtan();
+};
+$("addJaykara").onclick=()=>{
+  const closeAt=kirtanPlan.items.findIndex(x=>x.locked),entry={kind:"jaykara",title:"जयकार",minutes:2,placement:"middle"};
+  if(closeAt<0)kirtanPlan.items.push(entry);else kirtanPlan.items.splice(closeAt,0,entry);
+  saveKirtanPlan();renderKirtan();
+};
+$("resetKirtan").onclick=()=>{kirtanPlan=defaultKirtanPlan();saveKirtanPlan();renderKirtan()};
+$("startKirtan").onclick=()=>{kirtanRunIndex=0;show("kirtanRun");renderKirtanRun()};
+$("exitKirtan").onclick=()=>{show("kirtan");renderKirtan()};
+$("prevKirtan").onclick=()=>{kirtanRunIndex--;renderKirtanRun()};
+$("nextKirtan").onclick=()=>{kirtanRunIndex++;renderKirtanRun()};
 $("aboutBack").onclick=()=>{show("home");setBhajanUrl(null)};
 $("ownerTop").onclick=ownerOpen;
 $("accountV2").onclick=accountOpenV2;
