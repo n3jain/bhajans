@@ -34,7 +34,104 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const actions = document.createElement("div");
   actions.className = "small-actions";
-  actions.innerHTML = '<button class="btn secondary" id="saveKirtanPlanBtn">Save plan</button><button class="btn secondary" id="shareKirtanPlanBtn">Share plan</button>';
+  actions.innerHTML = '<button class="btn secondary" id="saveKirtanPlanBtn">Save plan</button><button class="btn secondary" id="shareKirtanPlanBtn">Share plan</button><select id="savedKirtans" style="max-width:280px"><option value="">Saved kirtans…</option></select>';
   summary.parentNode.insertBefore(actions,summary);
   name.placeholder = "Oct_17-Neha-Kirtan";
+});
+
+document.addEventListener("DOMContentLoaded", () => {
+  if (!window.featureEnabled?.("kirtanBuilder")) return;
+  const byId = id => document.getElementById(id);
+  if (!byId("kirtanDate") || !byId("saveKirtanPlanBtn")) return;
+
+  function suggestedKirtanName() {
+    const raw = byId("kirtanDate").value;
+    const d = raw ? new Date(raw + "T12:00:00") : new Date();
+    const month = d.toLocaleString("en-US", {month:"short"});
+    const day = String(d.getDate()).padStart(2,"0");
+    const host = (byId("kirtanHost").value.trim() || "Host").replace(/\s+/g,"_");
+    return month + "_" + day + "-" + host + "-Kirtan";
+  }
+
+  function savedKirtans() {
+    try { return JSON.parse(localStorage.getItem("bhajanSavedKirtans")) || {}; }
+    catch { return {}; }
+  }
+
+  function refreshSavedKirtans() {
+    const saved = savedKirtans();
+    const select = byId("savedKirtans");
+    select.innerHTML = '<option value="">Saved kirtans…</option>' +
+      Object.keys(saved).sort().map(n => '<option value="' + n.replace(/"/g,"&quot;") + '">' + n.replace(/</g,"&lt;") + '</option>').join("");
+  }
+
+  function normalizePlan() {
+    if (!kirtanPlan) loadKirtanPlan();
+    if (!kirtanPlan.date) kirtanPlan.date = new Date().toISOString().slice(0,10);
+    if (kirtanPlan.host == null) kirtanPlan.host = "";
+    if (!kirtanPlan.name || kirtanPlan.name === "Mata ki Chowki") kirtanPlan.name = suggestedKirtanName();
+
+    const aarti = kirtanPlan.items?.find(x => x.locked && (x.title === "Mata Aarti" || x.title === "Durga Aarti"));
+    if (aarti) {
+      aarti.kind = "song";
+      aarti.song_id = "ff839125-4b27-4ca9-ba48-f4ff4b2c0e90";
+      aarti.title = "अम्बे तू है जगदम्बे काली";
+      aarti.role = "durga-aarti";
+      aarti.placement = "closing";
+      aarti.minutes = Number(aarti.minutes) || 7;
+      aarti.locked = true;
+    }
+    saveKirtanPlan();
+  }
+
+  function syncKirtanFields() {
+    normalizePlan();
+    byId("kirtanDate").value = kirtanPlan.date;
+    byId("kirtanHost").value = kirtanPlan.host || "";
+    byId("kirtanName").value = kirtanPlan.name || suggestedKirtanName();
+    refreshSavedKirtans();
+  }
+
+  byId("kirtanDate").onchange = () => {
+    normalizePlan();
+    kirtanPlan.date = byId("kirtanDate").value;
+    kirtanPlan.host = byId("kirtanHost").value.trim();
+    kirtanPlan.name = suggestedKirtanName();
+    byId("kirtanName").value = kirtanPlan.name;
+    saveKirtanPlan();
+  };
+
+  byId("kirtanHost").oninput = () => {
+    normalizePlan();
+    kirtanPlan.host = byId("kirtanHost").value.trim();
+    kirtanPlan.date = byId("kirtanDate").value;
+    kirtanPlan.name = suggestedKirtanName();
+    byId("kirtanName").value = kirtanPlan.name;
+    saveKirtanPlan();
+  };
+
+  byId("saveKirtanPlanBtn").onclick = () => {
+    normalizePlan();
+    kirtanPlan.date = byId("kirtanDate").value;
+    kirtanPlan.host = byId("kirtanHost").value.trim();
+    kirtanPlan.name = byId("kirtanName").value.trim() || suggestedKirtanName();
+    const saved = savedKirtans();
+    saved[kirtanPlan.name] = JSON.parse(JSON.stringify(kirtanPlan));
+    localStorage.setItem("bhajanSavedKirtans", JSON.stringify(saved));
+    saveKirtanPlan();
+    refreshSavedKirtans();
+    byId("saveKirtanPlanBtn").textContent = "Saved";
+    setTimeout(() => byId("saveKirtanPlanBtn").textContent = "Save plan", 1200);
+  };
+
+  byId("savedKirtans").onchange = () => {
+    const p = savedKirtans()[byId("savedKirtans").value];
+    if (!p) return;
+    kirtanPlan = JSON.parse(JSON.stringify(p));
+    saveKirtanPlan();
+    syncKirtanFields();
+    renderKirtan();
+  };
+
+  syncKirtanFields();
 });
