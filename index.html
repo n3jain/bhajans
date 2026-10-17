@@ -366,7 +366,7 @@ async function load(){
 function render(cat=""){
   const raw=$("q").value.trim();
   const q=raw.toLowerCase();
-  const r=items.filter(b=>b.lyrics_status!=="partial"&&b.lyrics_status!=="pending"&&(!cat||String(b.category_id)===String(cat))&&(!q||[b.title,b.title_devanagari,b.lyrics_devanagari,b.lyrics_transliteration,b.author_name].filter(Boolean).join(" ").toLowerCase().includes(q)));
+  const r=items.filter(b=>b.lyrics_status==="complete"&&String(b.lyrics_devanagari||"").trim()&&(!cat||String(b.category_id)===String(cat))&&(!q||[b.title,b.title_devanagari,b.lyrics_devanagari,b.lyrics_transliteration,b.author_name].filter(Boolean).join(" ").toLowerCase().includes(q)));
   $("list").innerHTML=r.map(b=>{
     const complete=b.lyrics_status==="complete";
     const badge='<div class="status-badge '+(complete?'complete':'pending')+'">'+(complete?'Complete':'Lyrics pending')+'</div>';
