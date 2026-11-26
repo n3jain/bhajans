@@ -1,0 +1,16 @@
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+const html=fs.readFileSync('index.html','utf8');
+const source=html.slice(html.indexOf('async function catalogWithFallback('),html.indexOf('async function load(){'));
+const load=new Function(source+'return catalogWithFallback')();
+const backup=JSON.parse(fs.readFileSync('catalog-snapshot.json','utf8'));
+assert.ok(backup.items.length>0);
+assert.equal(new Set(backup.items.map(b=>b.id)).size,backup.items.length);
+assert.ok(backup.items.every(b=>b.status==='published'&&b.lyrics_status==='complete'&&b.lyrics_devanagari.trim()));
+const live={categories:[],items:[]};
+assert.equal((await load(async()=>live,async()=>backup)).offline,false);
+assert.equal((await load(async()=>{throw Error('offline')},async()=>backup)).items.length,backup.items.length);
+assert.equal((await load(async()=>({}),async()=>backup)).offline,true);
+assert.equal((await load(()=>new Promise(()=>{}),async()=>backup,10)).offline,true);
+await assert.rejects(load(async()=>{throw Error()},async()=>{throw Error()}));
+console.log('Catalog fallback tests passed');
