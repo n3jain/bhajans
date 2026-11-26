@@ -43,7 +43,7 @@ const flags = fs.readFileSync('feature-flags.js','utf8');
 for (const name of ['multiUserAccounts','songOwnershipAndCopy','imageVoiceIngestion','startKirtanMode']) {
   assert(new RegExp(name+'\\s*:\\s*false').test(flags), name+' must default off');
 }
-assert(/kirtanBuilder\\s*:\\s*true/.test(flags), 'kirtanBuilder should be enabled');
+assert(/kirtanBuilder\s*:\s*true/.test(flags), 'kirtanBuilder should be enabled');
 assert(flags.includes('window.featureEnabled'), 'featureEnabled helper missing');
 
 
@@ -64,3 +64,5 @@ assert(html.includes('async function ingestVoiceV2(file)'), 'voice ingestion han
 assert(html.includes('/functions/v1/bhajan-ingest'), 'voice ingestion endpoint missing');
 assert(html.includes('featureEnabled?.("imageVoiceIngestion")'), 'voice ingestion feature guard missing');
 assert(html.includes('24*1024*1024'), 'voice upload size guard missing');
+
+if (failures.length) { console.error(failures.join('\n')); process.exit(1); }
