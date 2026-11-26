@@ -2,6 +2,6 @@
   "name": "bhajan-notebook",
   "private": true,
   "scripts": {
-    "test": "node tests/smoke.mjs"
+    "test": "node tests/smoke.mjs && node tests/sai-static.test.mjs && node tests/catalog-fallback.test.mjs"
   }
 }
